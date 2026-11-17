@@ -24,7 +24,7 @@ public class SecurityConfig {
             .exceptionHandling(ex->ex.authenticationEntryPoint((req,res,e)->{
                 res.setStatus(401);res.setContentType("application/json");res.getWriter().write("{\"message\":\"Unauthorized\"}");
             }).accessDeniedHandler((req,res,e)->{
-                res.setStatus(403);res.setContentType("application/json");res.getWriter().write("{\"message\":\"Forbidden\"}");
+                res.setStatus(403);res.setContentType("application/json");res.getWriter().write("{\"message\":\"Access Denied\"}");
             })).build();
     }
 }

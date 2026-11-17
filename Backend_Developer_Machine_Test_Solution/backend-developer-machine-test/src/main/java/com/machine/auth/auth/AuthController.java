@@ -17,13 +17,16 @@ import java.util.concurrent.ConcurrentHashMap;
 public class AuthController {
     private final UserRepository users; private final PasswordEncoder encoder;
     private final JwtService jwt; private final TokenBlacklist blacklist; private final OtpService otp;
+    private final CountryDetectionService countryDetection;
     private final Set<String> restricted;
     private final Map<String,Boolean> otpVerified=new ConcurrentHashMap<>();
 
     public AuthController(UserRepository users,PasswordEncoder encoder,JwtService jwt,
-        TokenBlacklist blacklist,OtpService otp,@Value("${app.security.restricted-countries}") String restricted) {
+        TokenBlacklist blacklist,OtpService otp,CountryDetectionService countryDetection,
+        @Value("${app.security.restricted-countries}") String restricted) {
         this.users=users;this.encoder=encoder;this.jwt=jwt;this.blacklist=blacklist;this.otp=otp;
-        this.restricted=Set.of(restricted.split(","));
+        this.countryDetection=countryDetection;
+        this.restricted=Arrays.stream(restricted.split(",")).map(String::trim).map(s->s.toUpperCase(Locale.ROOT)).collect(java.util.stream.Collectors.toUnmodifiableSet());
     }
 
     @PostMapping("/auth/otp/request")
@@ -41,7 +44,7 @@ public class AuthController {
 
     @PostMapping("/auth/signup")
     public ResponseEntity<?> signup(@Valid @RequestBody AuthDtos.SignupRequest request,HttpServletRequest http){
-        String country=request.countryCode().trim().toUpperCase(Locale.ROOT);
+        String country=countryDetection.countryFor(http,request.countryCode());
         if(restricted.contains(country)) return ResponseEntity.status(403).body(Map.of("message","Sign-up is not available in your country"));
         if(!Boolean.TRUE.equals(otpVerified.remove(request.email()))) return ResponseEntity.badRequest().body(Map.of("message","Verify OTP before signing up"));
         if(users.existsByEmail(request.email())) return ResponseEntity.badRequest().body(Map.of("message","Email already registered"));

@@ -14,7 +14,7 @@ public class AuthDtos {
         @NotBlank @Pattern(regexp="^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[^A-Za-z0-9]).{8,12}$",
             message="must be 8-12 chars and include uppercase, lowercase, number and special character") String password,
         @NotNull UserRole userType,
-        @NotBlank String countryCode
+        @Pattern(regexp="(?i)^[A-Z]{2}$", message="must be a two-letter country code") String countryCode
     ) {}
     public record LoginRequest(@NotBlank @Pattern(regexp=EMAIL_WITH_UNDERSCORE, message="must be a valid email containing _ before @, e.g. demo_user@example.com") String email,@NotBlank String password) {}
     public record OtpRequest(@NotBlank @Pattern(regexp=EMAIL_WITH_UNDERSCORE, message="must be a valid email containing _ before @, e.g. demo_user@example.com") String email) {}

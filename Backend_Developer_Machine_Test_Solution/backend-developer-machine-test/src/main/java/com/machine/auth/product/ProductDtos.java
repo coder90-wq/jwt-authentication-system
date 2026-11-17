@@ -3,5 +3,5 @@ import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 public class ProductDtos {
     public record ProductRequest(@NotBlank @Size(max=150) String name,
-        @Size(max=2000) String description,@NotNull @DecimalMin("0.0") BigDecimal price){}
+        @Size(max=2000) String description,@NotNull @DecimalMin("0.0") @Digits(integer=10,fraction=2) BigDecimal price){}
 }

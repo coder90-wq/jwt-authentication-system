@@ -1,99 +1,93 @@
-# Backend Developer Machine Test — Authentication & Products
+﻿# Backend Developer Machine Test — simple guide
 
-A runnable Spring Boot 3 application with in-memory user accounts, PostgreSQL-backed product CRUD, JWT authentication, OTP verification, role-based authorization, Swagger UI, and a browser frontend.
+## Sabse pehle: Docker aur database ki current situation
 
-## Requirements
-- Java 17+
-- Maven 3.9+
-- Docker Desktop (or a local PostgreSQL 16 instance)
+- Project mein Docker se **PostgreSQL 16** start karne ka setup hai: `docker-compose.yml`.
+- IntelliJ ka normal Run **PostgreSQL** profile use karta hai. Docker Desktop aur PostgreSQL container chalu hone chahiye. `application-postgres.yml` mein connection configured hai.
+- Docker Desktop ab running hai; `machine-test-postgres` container PostgreSQL 16 chala raha hai.
+- PostgreSQL par Product CRUD aur poora API flow Postman collection se verify hua. H2 temporary local-demo option hai; app restart par uske product records clear ho jate hain.
+- Users ka account data jaan-boojhkar **memory mein** rakha hai, task ke in-memory authentication requirement ke hisaab se. Backend restart hone par accounts aur logged-out JWT ki blacklist clear hoti hai.
 
-## Run
-1. Start PostgreSQL:
-   ```bash
-   docker compose up -d
-   ```
-2. Start the application (PostgreSQL mode):
-   ```bash
-   mvn spring-boot:run
-   ```
-3. Open the frontend: http://localhost:8080/
-4. Open Swagger: http://localhost:8080/swagger-ui.html
+## App ka flow
 
-Default database settings are in `src/main/resources/application.yml`. Override with `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD`.
-For a local demo without Docker/PostgreSQL, H2 is already included; start the app with `DB_URL=jdbc:h2:mem:machinetest;DB_CLOSE_DELAY=-1;MODE=PostgreSQL`, `DB_USERNAME=sa`, and an empty `DB_PASSWORD`. Product data in H2 is temporary and is cleared when the app stops. User accounts are held in memory and are cleared whenever the app restarts, as required by the in-memory authentication task.
-Set a strong random `JWT_SECRET` (at least 32 bytes) before deploying.
+1. Browser mein <http://localhost:3000> kholo. Frontend Express se aata hai; <http://localhost:8080> bhi ab usi page par redirect karta hai.
+2. **Sign up** kholo. Username 8–50 characters ka ho. Email valid ho aur usmein `_` `@` se pehle ho, jaise `demo_user@example.com`.
+3. Password 8–12 characters ka ho aur usmein uppercase, lowercase, number aur symbol ho. Example: `Pass@123`.
+4. `Send code` dabao. Demo mein OTP email se nahi aata; code page par dikhta hai. Code fill karke `Create account` dabao. Signup par country server IP se check hota hai. Local computer par country detect na ho to 2-letter code, jaise `IN`, manually bhar sakte ho. `SY`, `AF`, `IR` signup ke liye blocked hain.
+5. Signup ke baad **Login** karo. Backend password ko BCrypt hash se check karta hai aur ek ghante mein expire hone wala JWT deta hai. Frontend JWT ko browser `localStorage` mein rakhta hai.
+6. Login ke baad Dashboard par `Welcome <Username>` dikhta hai. Sirf Administrator ko Settings khulta hai; Standard User ko `403 Access Denied` milta hai.
+7. Products page se login user product add, list, edit aur delete kar sakta hai. Default mode mein records PostgreSQL mein jate hain; `local` profile H2 demo use karta hai.
+8. **Logout** current JWT ko in-memory blacklist mein dalta hai. Usi token se Dashboard ya Products dobara nahi khulte.
 
-## API endpoints
+## Project mein kya kahan hai
 
-| Method | Endpoint | Access |
+- `src/main/java/com/machine/auth/auth/` — signup, login, OTP aur country check.
+- `src/main/java/com/machine/auth/security/` — JWT banana/check karna, token expiry aur logout blacklist.
+- `src/main/java/com/machine/auth/user/` — in-memory users; passwords BCrypt hash ke roop mein.
+- `src/main/java/com/machine/auth/product/` — product API aur PostgreSQL/H2 persistence.
+- `src/main/java/com/machine/auth/config/` — Spring Security, Swagger aur frontend redirect.
+- `frontend/public/index.html` — Northstar UI.
+- `frontend/server.js` — Express web server aur API proxy.
+- `postman/Backend_Developer_Machine_Test.postman_collection.json` — API requests aur automatic checks.
+
+## App chalane ke commands
+
+### PostgreSQL mode — Docker theek chalne par
+
+Project folder mein terminal khol kar:
+
+```powershell
+docker compose up -d
+mvn spring-boot:run
+```
+
+Ek aur terminal mein:
+
+```powershell
+cd frontend
+npm install
+npm start
+```
+
+IntelliJ ka normal Run bhi PostgreSQL use karega. Phir <http://localhost:3000> kholo. Swagger: <http://localhost:8080/swagger-ui.html>.
+
+### Docker ke bina local demo
+
+Docker unavailable ho to IntelliJ Run Configuration ke **Active profiles** field mein `local` likho; terminal se H2 demo chalane ke liye `mvn spring-boot:run -Dspring-boot.run.profiles=local` chalao. `local` profile H2 use karta hai.
+
+Phir doosre terminal mein Express ke commands chalao: `cd frontend`, `npm install`, `npm start`.
+
+## Postman mein API chalana
+
+Postman mein `postman/Backend_Developer_Machine_Test.postman_collection.json` import karo. Collection ka default API address `http://localhost:8080` hai. Collection Runner mein **Standard user flow** aur uske baad **Administrator access flow** order mein chalao. OTP aur JWT collection khud save karti hai.
+
+Collection mein validation errors, restricted country, OTP, Signup, Login, invalid Login, Dashboard, dono roles ka Settings access, Product CRUD, Logout aur logout ke baad token rejection ke checks hain.
+
+## API addresses
+
+| Method | Path | Kaam |
 |---|---|---|
-| POST | `/api/auth/otp/request` | Public |
-| POST | `/api/auth/otp/verify` | Public |
-| POST | `/api/auth/signup` | Public, requires verified OTP |
-| POST | `/api/auth/login` | Public |
-| GET | `/api/dashboard` | Authenticated |
-| GET | `/api/settings` | Administrator |
-| POST | `/api/auth/logout` | Authenticated |
-| GET | `/api/error` | Public |
-| GET | `/api/products` | Authenticated |
-| GET | `/api/products/{id}` | Authenticated |
-| POST | `/api/products` | Authenticated |
-| PUT | `/api/products/{id}` | Authenticated |
-| DELETE | `/api/products/{id}` | Authenticated |
+| POST | `/api/auth/otp/request` | Demo OTP mangna |
+| POST | `/api/auth/otp/verify` | OTP verify karna |
+| POST | `/api/auth/signup` | Account banana |
+| POST | `/api/auth/login` | Login aur JWT lena |
+| GET | `/api/dashboard` | Login user ka welcome message |
+| GET | `/api/settings` | Administrator-only Settings |
+| POST | `/api/auth/logout` | JWT revoke karna |
+| GET/POST | `/api/products` | Products dekhna/banana |
+| GET/PUT/DELETE | `/api/products/{id}` | Ek product dekhna/update/delete karna |
 
-## Signup rules
-- Username: 8–50 characters.
-- Email: valid email format containing both `@` and `_` (as explicitly required by the PDF).
-- Password: 8–12 characters with uppercase, lowercase, digit and special character.
-- User type: `STANDARD_USER` or `ADMINISTRATOR` (shown as Standard User / Administrator in the UI).
-- Restricted country codes: `SY`, `AF`, `IR` (configurable). The browser now detects the visitor country from their public IP and submits the detected code; the API checks the code during signup. The demo browser lookup uses [ipapi.co's documented IP geolocation API](https://ipapi.co/api/), so the browser needs internet access.
-- OTP must be requested and verified before signup.
+## Ab tak kya verify hua
 
-## Important implementation notes
-- Users are stored in a thread-safe in-memory store. Passwords are stored as BCrypt hashes, never plain text.
-- JWTs are signed and expire after one hour by default.
-- Logout revokes the presented JWT in an in-memory blacklist. This meets the single-instance machine-test flow; use Redis or a shared database for a multi-instance production deployment.
-- OTPs are held in memory for five minutes. The demo endpoint returns the OTP in its response so the flow can be tested without an email/SMS provider. Replace this with an email/SMS delivery provider in production.
-- Country detection in the demo is performed by the browser using its public IP. A client can still alter API requests, so production should perform GeoIP lookup server-side using the connecting IP and a trusted proxy configuration.
-- The task's PDF lists Express.js in the technology stack but specifies Java Spring Boot for the backend. This implementation follows the explicit Java/Spring Boot backend requirement; the frontend is served by Spring Boot.
-- Admin registration is open for test purposes because the assignment provides no admin provisioning workflow. In production, administrator creation must be restricted to a secure invitation/seed process.
+- `mvn clean test`: BCrypt hash ko plain password se alag store karne wala unit test pass hua.
+- Postman collection Newman runner se PostgreSQL 16 par chali: 22 requests, 23 assertions, 0 failed.
+- PostgreSQL par signup/login, dashboard, role access, Product CRUD, logout aur revoked-token behavior verify hue.
+- Frontend aur Swagger proxy ne HTTP 200 diya.
+- Docker Compose PostgreSQL service running aur healthy hai.
 
-## Postman examples
+## Zaroori demo limitations
 
-Request OTP:
-```http
-POST /api/auth/otp/request
-Content-Type: application/json
-{"email":"demo_user@example.com"}
-```
-
-Verify OTP using `demoOtp` returned by the request:
-```http
-POST /api/auth/otp/verify
-Content-Type: application/json
-{"email":"demo_user@example.com","otp":"123456"}
-```
-
-Signup:
-```json
-{"username":"demo_user","email":"demo_user@example.com","password":"Pass@123","userType":"Standard User","countryCode":"IN"}
-```
-
-Login:
-```json
-{"email":"demo_user@example.com","password":"Pass@123"}
-```
-Use returned token as `Authorization: Bearer <token>` for protected endpoints.
-
-## Validation and expected responses
-- Invalid login: HTTP 401 with `{"message":"Login Failed","errorEndpoint":"/api/error"}`.
-- Dashboard: `{"message":"Welcome demo_user"}`.
-- Logout: `{"message":"demo_user Logged Out"}`; the revoked token receives 401 on subsequent requests.
-- Non-admin Settings: HTTP 403.
-- Admin Settings: `{"message":"Administrator settings access granted"}`.
-
-## Before submission
-- Run the app and test the endpoints in Postman.
-- Replace the demo JWT secret and database credentials.
-- Configure real server-side country detection and OTP delivery.
-- Add tests for your final environment and commit the project to your GitHub repository.
+- Demo OTP response mein code dikhata hai; email nahi bhejta.
+- User accounts aur token blacklist memory mein hain, restart par reset honge.
+- H2 sirf Docker/PostgreSQL unavailable hone par local demo profile ke liye hai.
+- JWT secret aur database password ko deployment se pehle strong environment values se replace karo.

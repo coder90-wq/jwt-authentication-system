@@ -1,0 +1,13 @@
+{
+  "name": "backend-developer-machine-test-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Express frontend server for the Backend Developer Machine Test",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "4.21.2"
+  }
+}
