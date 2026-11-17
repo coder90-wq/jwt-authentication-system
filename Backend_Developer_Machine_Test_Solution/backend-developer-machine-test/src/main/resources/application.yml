@@ -1,0 +1,28 @@
+server:
+  port: 8080
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/machinetest}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  jackson:
+    default-property-inclusion: non_null
+app:
+  jwt:
+    # Replace this value with a randomly generated secret of at least 32 bytes in production.
+    secret: ${JWT_SECRET:change-this-demo-secret-key-to-a-long-random-32-byte-value}
+    expiration-ms: 3600000
+  otp:
+    expiration-ms: 300000
+  security:
+    restricted-countries: SY,AF,IR
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
